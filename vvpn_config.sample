@@ -1,0 +1,20 @@
+DDNS_PROVIDER=namecheap
+
+NAMECHEAP_HOST=
+NAMECHEAP_DOMAIN=
+NAMECHEAP_PASSWORD=
+
+VPS_PROVIDER=digitalocean
+
+DIGITALOCEAN_AUTH=
+DIGITALOCEAN_REGION=
+DIGITALOCEAN_DROPLET_NAME=
+
+# For bootstraping only.
+# These server configurations gets copy over to the clients,
+# so changes are ignored after bootstrap.
+PORT=1194
+PORT_TCP=443
+DNS=2 # See openvpn-install.sh for meanings.
+SERVER_HOSTNAME=
+CLIENT=client

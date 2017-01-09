@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+
+# XXX: Does not work if vvpn is softlinked
+cd $(dirname $0)
+
+source vvpn_config
+
+case $1 in
+  "start")
+    if [[ ! -f config/server.tar.gz ]]; then
+      echo "Bootstraping server configurations..."
+      make -f vvpn.mk config/bootstrap.yaml
+    else
+      echo "Rebuild the server from the certificates extracted from the last time..."
+      make -f vvpn.mk config/server.yaml
+    fi
+    echo ""
+    echo "Starting the server..."
+    ./vps_providers/$VPS_PROVIDER.sh start vvpn_config config/bootstrap.yaml
+    echo ""
+    # This is temporary until I can find out a way to authenticate with the
+    # server without asking the user to confirm addition to the known_hosts file.
+    echo "Server started!"
+    echo "Please scp into the server and extract the client.ovpn for your"
+    echo "client certificate."
+    echo "You should also extract server.tar.gz and place it into the config"
+    echo "directory so you could reuse the same client certificate on the"
+    echo "server created next time."
+  ;;
+  "stop")
+    echo "Stopping the server..."
+    ./vps_providers/$VPS_PROVIDER.sh stop vvpn_config
+  ;;
+  "clean")
+    echo "Cleaning up generated configuration files..."
+    make -f vvpn.mk clean
+  ;;
+  "_yaml")
+    mkdir -p config
+    case $2 in
+      "common")
+        echo '#cloud-config
+ssh_keys:
+  ecdsa_private: |' > config/common.yaml
+sed "s/^/    /" config/server_ecdsa >> config/common.yaml
+        echo -n '  ecdsa_public: |
+    ' >> config/common.yaml
+cat config/server_ecdsa.pub >> config/common.yaml
+        echo -n 'packages:
+  - wget
+  - openssl
+write_files:
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    permissions: 0644
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  - path: /etc/init.d/ddns
+    permissions: 0755
+    content: |
+      #!/bin/bash
+      curl "' >> config/common.yaml
+        cat config/ddns_url >> config/common.yaml
+        echo '`wget -qO- ipv4.icanhazip.com`" > /dev/null
+runcmd:
+  # Dynamic DNS
+  - /etc/init.d/ddns
+  - update-rc.d ddns defaults
+  # Download openvpn-install script
+  - wget https://raw.githubusercontent.com/timdream/openvpn-install/master/openvpn-install.sh -O /root/openvpn-install.sh
+  - chmod +x /root/openvpn-install.sh' >> config/common.yaml
+      ;;
+      "bootstrap")
+        cp config/common.yaml config/bootstrap.yaml
+        echo 'write_files:
+  - path: /root/bootstrap/config.install
+    permissions: 0644
+    content: |
+      PORT='$PORT'
+      PORT_TCP='$PORT_TCP'
+      DNS='$DNS'
+      SERVER_HOSTNAME='$SERVER_HOSTNAME'
+      CLIENT='$CLIENT'
+runcmd:
+  # Bootstrap
+  - /root/openvpn-install.sh /root/bootstrap
+  # Create server certificate archive
+  - (cd /etc/openvpn; tar cvzf /root/server.tar.gz config.install easy-rsa/pki ta.key)' >> config/bootstrap.yaml
+      ;;
+      "server")
+        cp config/common.yaml config/server.yaml
+        echo -n 'write_files:
+  - path: /root/config/server.tar.gz
+    permissions: 0644
+    encoding: base64
+    content: |
+      ' >> config/server.yaml
+base64 -i config/server.tar.gz >> config/server.yaml
+        echo 'runcmd:
+  # Extract the archive
+  - (cd /root/server; tar xvf server.tar.gz)
+  # Restore server
+  - /root/openvpn-install.sh /root/server' >> config/server.yaml
+      ;;
+    esac
+  ;;
+  *)
+    echo "Usage: [start|stop|clean]"
+    exit 1
+  ;;
+esac
