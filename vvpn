@@ -10,30 +10,57 @@ case $1 in
     if [[ ! -f config/server.tar.gz ]]; then
       echo "Bootstraping server configurations..."
       make -f vvpn.mk config/bootstrap.yaml
+      make -f vvpn.mk config/id_ed25519.pub
+
+      echo ""
+      ./vps_providers/$VPS_PROVIDER.sh start vvpn_config config/bootstrap.yaml config/id_ed25519.pub
+      [[ $? != 0 ]] && exit 1
+
+      echo ""
+      echo "Extracting the generated client configuration..."
+      make -f vvpn.mk config/known_hosts
+      [[ $? != 0 ]] && exit 1
+      scp -i config/id_ed25519 \
+        -o UserKnownHostsFile=config/known_hosts \
+        -o LogLevel=ERROR \
+        root@$SERVER_HOSTNAME:/root/$CLIENT.ovpn ./
+      [[ $? != 0 ]] && exit 1
+
+      echo ""
+      echo "Extracting the generated server configurations..."
+      scp -i config/id_ed25519 \
+        -o UserKnownHostsFile=config/known_hosts \
+        -o LogLevel=ERROR \
+        root@$SERVER_HOSTNAME:/root/server.tar.gz config/server.tar.gz
+      [[ $? != 0 ]] && exit 1
+
+      echo ""
+      echo "Success! You client configuration is available as "$CLIENT".ovpn"
+      echo "Server configurations has been extracted; your client configuration"
+      echo "should continue to work even if you stop the server."
     else
-      echo "Rebuild the server from the certificates extracted from the last time..."
+      echo "Rebuild the server from the configurations extracted from the last time..."
       make -f vvpn.mk config/server.yaml
+      [[ $? != 0 ]] && exit 1
+      make -f vvpn.mk config/id_ed25519.pub
+      [[ $? != 0 ]] && exit 1
+
+      echo ""
+      echo "Starting the server..."
+      ./vps_providers/$VPS_PROVIDER.sh start vvpn_config config/server.yaml config/id_ed25519.pub
+      [[ $? != 0 ]] && exit 1
+      echo "Server started. Your original client configurations should work as expected."
     fi
-    echo ""
-    echo "Starting the server..."
-    ./vps_providers/$VPS_PROVIDER.sh start vvpn_config config/bootstrap.yaml
-    echo ""
-    # This is temporary until I can find out a way to authenticate with the
-    # server without asking the user to confirm addition to the known_hosts file.
-    echo "Server started!"
-    echo "Please scp into the server and extract the client.ovpn for your"
-    echo "client certificate."
-    echo "You should also extract server.tar.gz and place it into the config"
-    echo "directory so you could reuse the same client certificate on the"
-    echo "server created next time."
   ;;
   "stop")
     echo "Stopping the server..."
     ./vps_providers/$VPS_PROVIDER.sh stop vvpn_config
+    [[ $? != 0 ]] && exit 1
   ;;
   "clean")
     echo "Cleaning up generated configuration files..."
     make -f vvpn.mk clean
+    [[ $? != 0 ]] && exit 1
   ;;
   "_yaml")
     mkdir -p config

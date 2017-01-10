@@ -9,12 +9,24 @@ config/bootstrap.yaml: config/common.yaml vvpn_config
 config/server.yaml: config/common.yaml config/server.tar.gz
 	@./vvpn _yaml server
 
-config/common.yaml: config/server_ecdsa config/ddns_url
+config/common.yaml: config/server_ecdsa config/server_ecdsa.pub config/ddns_url
 	@./vvpn _yaml common
 
+config/server_ecdsa.pub: config/server_ecdsa
 config/server_ecdsa:
 	@mkdir -p config
 	@ssh-keygen -t ecdsa -f config/server_ecdsa -C "" -N ""
+
+config/id_ed25519.pub: config/id_ed25519
+config/id_ed25519:
+	@mkdir -p config
+	@ssh-keygen -t ed25519 -f config/id_ed25519 -C "" -N ""
+
+config/known_hosts: config/server_ecdsa.pub vvpn_config
+	@mkdir -p config
+	@. vvpn_config; \
+	echo -n "$$SERVER_HOSTNAME " > config/known_hosts; \
+	cat config/server_ecdsa.pub >> config/known_hosts;
 
 config/ddns_url: vvpn_config
 	@mkdir -p config
