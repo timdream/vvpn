@@ -88,43 +88,41 @@ write_files:
       #!/bin/bash
       curl "' >> config/common.yaml
         cat config/ddns_url >> config/common.yaml
-        echo '`wget -qO- ipv4.icanhazip.com`" > /dev/null
-runcmd:
+        echo '`wget -qO- ipv4.icanhazip.com`" > /dev/null' >> config/common.yaml
+        echo 'runcmd:
   # Dynamic DNS
   - /etc/init.d/ddns
   - update-rc.d ddns defaults
   # Download openvpn-install script
   - wget https://raw.githubusercontent.com/timdream/openvpn-install/master/openvpn-install.sh -O /root/openvpn-install.sh
-  - chmod +x /root/openvpn-install.sh' >> config/common.yaml
+  - chmod +x /root/openvpn-install.sh' >> config/common-runcmd.yaml
       ;;
       "bootstrap")
         cp config/common.yaml config/bootstrap.yaml
-        echo 'write_files:
-  - path: /root/bootstrap/config.install
+        echo '  - path: /root/bootstrap/config.install
     permissions: 0644
     content: |
       PORT='$PORT'
       PORT_TCP='$PORT_TCP'
       DNS='$DNS'
       SERVER_HOSTNAME='$SERVER_HOSTNAME'
-      CLIENT='$CLIENT'
-runcmd:
-  # Bootstrap
+      CLIENT='$CLIENT >> config/bootstrap.yaml
+        cat config/common-runcmd.yaml >> config/bootstrap.yaml
+        echo '  # Bootstrap
   - /root/openvpn-install.sh /root/bootstrap
   # Create server certificate archive
   - (cd /etc/openvpn; tar cvzf /root/server.tar.gz config.install easy-rsa/pki ta.key)' >> config/bootstrap.yaml
       ;;
       "server")
         cp config/common.yaml config/server.yaml
-        echo -n 'write_files:
-  - path: /root/config/server.tar.gz
+        echo -n '  - path: /root/config/server.tar.gz
     permissions: 0644
     encoding: base64
     content: |
       ' >> config/server.yaml
 base64 -i config/server.tar.gz >> config/server.yaml
-        echo 'runcmd:
-  # Extract the archive
+        cat config/common-runcmd.yaml >> config/server.yaml
+        echo '  # Extract the archive
   - (cd /root/server; tar xvf server.tar.gz)
   # Restore server
   - /root/openvpn-install.sh /root/server' >> config/server.yaml
