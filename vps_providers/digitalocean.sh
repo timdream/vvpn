@@ -27,7 +27,7 @@ case $TASK in
       [[ $? != 0 ]] && exit 1
     fi
     echo ""
-    echo "Starting the server..."
+    echo "Asking digital ocean to start the server..."
 
     doctl compute droplet create $DIGITALOCEAN_DROPLET_NAME \
       -v \
@@ -45,9 +45,9 @@ case $TASK in
     echo ""
     echo "Waiting for server to come online on port $WAIT_ON_PORT..."
     REMOTE_IP=`doctl compute droplet list $DIGITALOCEAN_DROPLET_NAME --format PublicIPv4 -v -t $DIGITALOCEAN_AUTH | tail -n 1`
-    nc -z -w20 $REMOTE_IP 22
+    nc -z -w20 $REMOTE_IP $WAIT_ON_PORT
 
-    sleep 20 # Probably need some more time
+    sleep 5
 
     echo ""
     echo "Server started."
@@ -59,8 +59,17 @@ case $TASK in
       -t $DIGITALOCEAN_AUTH
     [[ $? != 0 ]] && exit 1
   ;;
+  "ip")
+    REMOTE_IP=`doctl compute droplet list $DIGITALOCEAN_DROPLET_NAME --format PublicIPv4 -v -t $DIGITALOCEAN_AUTH | tail -n 1`
+    if [[ ! -z "$REMOTE_IP" ]]; then
+      echo $REMOTE_IP
+      exit
+    fi
+    (>&2 echo "Not started.")
+    exit 1
+  ;;
   "*")
-    (>&2 echo "Usage: start|stop config_file [public_key_file]")
+    (>&2 echo "Usage: start|stop|ip config_file [public_key_file]")
     exit 1
   ;;
 esac

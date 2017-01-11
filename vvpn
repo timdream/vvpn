@@ -18,20 +18,20 @@ case $1 in
 
       echo ""
       echo "Extracting the generated client configuration..."
+      REMOTE_IP=`./vps_providers/$VPS_PROVIDER.sh ip vvpn_config`
+      echo -n $REMOTE_IP > config/remote_ip
       make -f vvpn.mk config/known_hosts
       [[ $? != 0 ]] && exit 1
       scp -i config/id_ed25519 \
         -o UserKnownHostsFile=config/known_hosts \
-        -o LogLevel=ERROR \
-        root@$SERVER_HOSTNAME:/root/$CLIENT.ovpn ./
+        root@$REMOTE_IP:/root/$CLIENT.ovpn ./
       [[ $? != 0 ]] && exit 1
 
       echo ""
       echo "Extracting the generated server configurations..."
       scp -i config/id_ed25519 \
         -o UserKnownHostsFile=config/known_hosts \
-        -o LogLevel=ERROR \
-        root@$SERVER_HOSTNAME:/root/server.tar.gz config/server.tar.gz
+        root@$REMOTE_IP:/root/server.tar.gz config/server.tar.gz
       [[ $? != 0 ]] && exit 1
 
       echo ""
@@ -49,6 +49,13 @@ case $1 in
       echo "Starting the server..."
       ./vps_providers/$VPS_PROVIDER.sh start vvpn_config config/server.yaml config/id_ed25519.pub
       [[ $? != 0 ]] && exit 1
+
+      echo ""
+      REMOTE_IP=`./vps_providers/$VPS_PROVIDER.sh ip vvpn_config`
+      echo -n $REMOTE_IP > config/remote_ip
+      make -f vvpn.mk config/known_hosts
+
+      echo ""
       echo "Server started. Your original client configurations should work as expected."
     fi
   ;;
@@ -95,7 +102,7 @@ write_files:
   - update-rc.d ddns defaults
   # Download openvpn-install script
   - wget https://raw.githubusercontent.com/timdream/openvpn-install/master/openvpn-install.sh -O /root/openvpn-install.sh
-  - chmod +x /root/openvpn-install.sh' >> config/common-runcmd.yaml
+  - chmod +x /root/openvpn-install.sh' > config/common-runcmd.yaml
       ;;
       "bootstrap")
         cp config/common.yaml config/bootstrap.yaml
@@ -115,7 +122,7 @@ write_files:
       ;;
       "server")
         cp config/common.yaml config/server.yaml
-        echo -n '  - path: /root/config/server.tar.gz
+        echo -n '  - path: /root/server/server.tar.gz
     permissions: 0644
     encoding: base64
     content: |
@@ -129,8 +136,14 @@ base64 -i config/server.tar.gz >> config/server.yaml
       ;;
     esac
   ;;
+  "ssh")
+    ssh -i config/id_ed25519 \
+      -o UserKnownHostsFile=config/known_hosts \
+      root@`cat config/remote_ip`
+    [[ $? != 0 ]] && exit 1
+  ;;
   *)
-    echo "Usage: [start|stop|clean]"
+    echo "Usage: start|stop|ssh|clean"
     exit 1
   ;;
 esac

@@ -23,10 +23,10 @@ config/id_ed25519:
 	@mkdir -p config
 	@ssh-keygen -t ed25519 -f config/id_ed25519 -C "" -N ""
 
-config/known_hosts: config/server_ecdsa.pub vvpn_config
+config/known_hosts: config/server_ecdsa.pub config/remote_ip
 	@mkdir -p config
-	@. vvpn_config; \
-	echo -n "$$SERVER_HOSTNAME " > config/known_hosts; \
+	@cat config/remote_ip > config/known_hosts; \
+	echo -n " " >> config/known_hosts; \
 	cat config/server_ecdsa.pub >> config/known_hosts;
 
 config/ddns_url: vvpn_config
