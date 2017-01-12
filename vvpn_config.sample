@@ -1,20 +1,28 @@
+# Pick a DDNS provider
 DDNS_PROVIDER=namecheap
 
-NAMECHEAP_HOST=
-NAMECHEAP_DOMAIN=
+# Namecheap-specific configurations
+NAMECHEAP_HOST=my-vpn
+NAMECHEAP_DOMAIN=example.com
 NAMECHEAP_PASSWORD=
 
+# Pick a VPS provider
 VPS_PROVIDER=digitalocean
 
+# DigitalOcen-specific configurations
+# To use DigitalOcean, install [`doctl`](https://github.com/digitalocean/doctl#installation) on the machine.
+# Create an Token from here: https://cloud.digitalocean.com/settings/api/
 DIGITALOCEAN_AUTH=
-DIGITALOCEAN_REGION=
-DIGITALOCEAN_DROPLET_NAME=
+DIGITALOCEAN_REGION=sfo2
+DIGITALOCEAN_DROPLET_NAME=my-vpn
 
-# For bootstraping only.
+# OpenVPN options. For bootstraping only.
 # These server configurations gets copy over to the clients,
 # so changes are ignored after bootstrap.
 PORT=1194
 PORT_TCP=443
-DNS=2 # See openvpn-install.sh for meanings.
-SERVER_HOSTNAME=
+# Public DNS to use. See openvpn-install.sh for meanings.
+DNS=2
+# Should be the hostname set by the dynamic DNS.
+SERVER_HOSTNAME=my-vpn.example.com
 CLIENT=client
