@@ -3,13 +3,13 @@
 
 SHELL := /bin/bash
 
-config/bootstrap-runcmd.yaml: config/bootstrap.yaml
 config/bootstrap.yaml: config/common.yaml vvpn vvpn_config
 	@./vvpn _yaml bootstrap
 
 config/server.yaml: config/common.yaml vvpn config/server.tar.gz
 	@./vvpn _yaml server
 
+config/common-runcmd.yaml: config/common.yaml
 config/common.yaml: config/server_ecdsa config/server_ecdsa.pub vvpn config/ddns_url
 	@./vvpn _yaml common vvpn
 
@@ -43,8 +43,9 @@ config/ddns_url: vvpn_config
 .PHONY: clean
 clean:
 	rm -f config/bootstrap.yaml \
-		config/bootstrap-runcmd.yaml \
+		config/common-runcmd.yaml \
 		config/server.yaml \
 		config/common.yaml \
 		config/known_hosts \
+		config/remote_ip \
 		config/ddns_url
