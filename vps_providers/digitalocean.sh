@@ -27,7 +27,7 @@ case $TASK in
       [[ $? != 0 ]] && exit 1
     fi
     echo ""
-    echo "Asking digital ocean to start the server..."
+    echo "Asking Digital Ocean to start the server..."
 
     doctl compute droplet create $DIGITALOCEAN_DROPLET_NAME \
       -v \
@@ -53,7 +53,7 @@ case $TASK in
     echo "Server started."
   ;;
   "stop")
-    echo "Asking digital ocean to remove the server..."
+    echo "Asking Digital Ocean to remove the server..."
     doctl compute droplet delete $DIGITALOCEAN_DROPLET_NAME \
       -v \
       -t $DIGITALOCEAN_AUTH
